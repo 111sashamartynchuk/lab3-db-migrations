@@ -1,11 +1,10 @@
 import enum
-from sqlalchemy import Column, Integer, String, Float, Enum, Date, Time
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Float, Enum, Date, Time, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
 
-# Перелічуваний тип для напрямку вітру
 class WindDirectionEnum(enum.Enum):
     N = "N"
     NNE = "NNE"
@@ -35,12 +34,23 @@ class Weather(Base):
     wind_kph = Column(Float)
     wind_direction = Column(Enum(WindDirectionEnum))
     last_updated = Column(Date)
-    sunrise = Column(Time)
 
-# Колонки категорії сходу-заходу небесних тіл
+    # Зв'язок з новою таблицею категорій
+    celestial_info = relationship("CelestialBody", back_populates="weather", uselist=False,
+                                  cascade="all, delete-orphan")
+
+
+class CelestialBody(Base):
+    __tablename__ = 'celestial_data'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    weather_id = Column(Integer, ForeignKey('weather_data.id'), nullable=False, unique=True)
+
     sunrise = Column(Time)
     sunset = Column(Time)
     moonrise = Column(Time)
     moonset = Column(Time)
     moon_phase = Column(String)
     moon_illumination = Column(Integer)
+
+    weather = relationship("Weather", back_populates="celestial_info")
