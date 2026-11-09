@@ -1,21 +1,28 @@
+from sqlalchemy import text
 from database import SessionLocal
-from models import Weather
+
 
 def update_go_outside_status():
     db = SessionLocal()
     try:
-        print("Оновлюємо значення go_outside (температура >= 15°C)...")
-        updated_rows = db.query(Weather).filter(Weather.temperature_celsius.isnot(None)).update(
-            {Weather.go_outside: Weather.temperature_celsius >= 15.0},
-            synchronize_session=False
-        )
+        print("Оновлюємо значення go_outside у таблиці celestial_data...")
+
+        # Миттєве оновлення всіх 170k записів одним запитом у БД
+        db.execute(text("""
+            UPDATE celestial_data 
+            SET go_outside = (weather_data.temperature_celsius >= 15.0)
+            FROM weather_data 
+            WHERE celestial_data.weather_id = weather_data.id
+        """))
+
         db.commit()
-        print(f"Успішно оновлено {updated_rows} записів!")
+        print("Успішно оновлено логічне поле для всіх записів!")
     except Exception as e:
         db.rollback()
         print(f"Помилка при оновленні: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     update_go_outside_status()
